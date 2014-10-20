@@ -34,6 +34,57 @@ from oc_zone as s
 inner join oc_country as c
   on s.country_id = c.country_id";
 
+const QUERY_COUNTRIES_MAGENTO    = "select
+  null as c_name,
+  c.iso2_code as c_iso2,
+  c.iso3_code as c_iso3
+from directory_country as c";
+
+const QUERY_STATES_MAGENTO       = "select
+  c.iso2_code as c_iso2,
+  s.code as s_iso,
+  s.default_name as s_name
+from directory_country_region as s
+inner join directory_country as c
+  on c.country_id = s.country_id";
+
+const QUERY_COUNTRIES_PRESTA     = "select
+  c.iso_code as c_iso2,
+  l.name as c_name,
+  null as c_iso3
+from ps_country as c
+inner join ps_country_lang l
+  on c.id_country = l.id_country
+  and l.id_lang = 1";
+
+const QUERY_STATES_PRESTA        = "select
+  c.iso_code as c_iso2,
+  s.name as s_name,
+  s.iso_code as s_iso
+from ps_state s
+inner join ps_country as c
+  on c.id_country = s.id_country";
+
+const QUERY_COUNTRIES_CSCART     = "select
+  c.code as c_iso2,
+  l.country as c_name,
+  c.code_A3 as c_iso3
+from cscart_countries as c
+inner join cscart_country_descriptions l
+  on c.code = l.code
+  and l.lang_code = 'en'";
+
+const QUERY_STATES_CSCART        = "select
+  c.code as c_iso2,
+  l.state as s_name,
+  s.code as s_iso
+from cscart_states as s
+inner join cscart_state_descriptions as l
+  on s.state_id = l.state_id
+  and l.lang_code = 'en'
+inner join cscart_countries as c
+  on c.code = s.country_code";
+
 function start($state)
 {
   switch ($state) {
@@ -173,10 +224,24 @@ function form_fields_data_selection()
     <input type="radio" id="make_arr_s" name="make_arr" required="required" value="states" <?php if (get_value('make_arr') == 'states') echo ' checked="checked" '; ?>>States
   </p>
   <p><textarea id="query" name="query" required="required"><?php echo get_value('query'); ?></textarea></p>
-  <p><input type="button" value="opencart" onclick="
-  if (document.getElementById('make_arr_c').checked) {document.getElementById('query').value = 'select\n  c.name as c_name,\n  c.iso_code_2 as c_iso2,\n  c.iso_code_3 as c_iso3 \nfrom oc_country as c';}
-  if (document.getElementById('make_arr_s').checked) {document.getElementById('query').value = 'select\n  c.iso_code_2 as c_iso2,\n  s.name as s_name,\n  s.code as s_iso\nfrom oc_zone as s\ninner join oc_country as c\n  on s.country_id = c.country_id';}
-  "></p>
+  <p>
+    <input type="button" value="opencart" onclick="
+      if (document.getElementById('make_arr_c').checked) {document.getElementById('query').value = 'select\n  c.name as c_name,\n  c.iso_code_2 as c_iso2,\n  c.iso_code_3 as c_iso3 \nfrom oc_country as c';}
+      if (document.getElementById('make_arr_s').checked) {document.getElementById('query').value = 'select\n  c.iso_code_2 as c_iso2,\n  s.name as s_name,\n  s.code as s_iso\nfrom oc_zone as s\ninner join oc_country as c\n  on s.country_id = c.country_id';}
+    ">
+    <input type="button" value="magento" onclick="
+      if (document.getElementById('make_arr_c').checked) {document.getElementById('query').value = 'select \n  null as c_name, \n  c.iso2_code as c_iso2, \n  c.iso3_code as c_iso3 \nfrom directory_country as c';}
+      if (document.getElementById('make_arr_s').checked) {document.getElementById('query').value = 'select \n  c.iso2_code as c_iso2, \n  s.code as s_iso, \n  s.default_name as s_name \nfrom directory_country_region as s \ninner join directory_country as c \n  on c.country_id = s.country_id';}
+    ">
+    <input type="button" value="presta" onclick="
+      if (document.getElementById('make_arr_c').checked) {document.getElementById('query').value = 'select \n  c.iso_code as c_iso2, \n  l.name as c_name, \n  null as c_iso3 \nfrom ps_country as c \ninner join ps_country_lang l \n  on c.id_country = l.id_country \n  and l.id_lang = 1';}
+      if (document.getElementById('make_arr_s').checked) {document.getElementById('query').value = 'select \n  c.iso_code as c_iso2, \n  s.name as s_name, \n  s.iso_code as s_iso \nfrom ps_state s \ninner join ps_country as c \n  on c.id_country = s.id_country';}
+    ">
+    <input type="button" value="cscart" onclick="
+      if (document.getElementById('make_arr_c').checked) {document.getElementById('query').value = 'select \n  c.code as c_iso2, \n  l.country as c_name, \n  c.code_A3 as c_iso3 \nfrom cscart_countries as c \ninner join cscart_country_descriptions l \n  on c.code = l.code';}
+      if (document.getElementById('make_arr_s').checked) {document.getElementById('query').value = 'select \n  c.code as c_iso2, \n  l.state as s_name, \n  s.code as s_iso \nfrom cscart_states as s \ninner join cscart_state_descriptions as l \n  on s.state_id = l.state_id \ninner join cscart_countries as c \n  on c.code = s.country_code';}
+    ">
+  </p>
   <p><span class="info">required fields for:
       <span class="info">Countries: c_name, c_iso2, c_iso3</span>
       <span class="info">States: c_iso2, s_name, s_iso</span>
@@ -261,7 +326,10 @@ function prepare_sql_query($query, $save_into = '')
 
 function make_counties_array_el(&$array, &$conflict_array, $row)
 {
-  if (!isset($row['c_name']) || !isset($row['c_iso2']) || !isset($row['c_iso3'])) {
+  if (!isset($row['c_iso2'])
+//    || !isset($row['c_name'])
+//    || !isset($row['c_iso3'])
+  ) {
     return ERR_REQUIRED_FIELD_EMPTY;
   }
 
@@ -311,6 +379,10 @@ function make_states_array_el(&$array, &$conflict_array, $row)
 
 function save_array_into_file($path, $array)
 {
+  if (file_exists($path)) {
+    @chmod($path, 0777);
+  }
+
   $handle = fopen($path, 'w');
   fwrite($handle,"<?php\n\n\$array = array(");
   foreach ($array as $key => $data) {
@@ -322,6 +394,7 @@ function save_array_into_file($path, $array)
   }
   fwrite($handle,"\n);");
   fclose($handle);
+  @chmod($path,0777);
 }
 
 function make_array_str_countries($data) {
@@ -359,7 +432,7 @@ function make_array_str_states($data) {
 
 function escape_str($str, $quote = '"')
 {
-  return $quote.preg_replace("/".$quote."/","\\".$quote,$str).$quote;
+  return $quote.preg_replace("/".$quote."/","\\".$quote, (string)$str).$quote;
 }
 
 

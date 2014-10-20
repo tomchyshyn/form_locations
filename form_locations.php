@@ -279,12 +279,25 @@ function make_counties_array_el(&$array, &$conflict_array, $row)
 
 function make_states_array_el(&$array, &$conflict_array, $row)
 {
+  if (!isset($row['c_iso2']) || !isset($row['s_name']) || !isset($row['s_iso'])) {
+    return ERR_REQUIRED_FIELD_EMPTY;
+  }
 
+  if (!isset($array[$row['c_iso2']][$row['s_iso']])) {
+    $array[$row['c_iso2']][$row['s_iso']] = array($row['s_name']);
+    return RESULT_OK;
+  }
+
+  if (in_array($row['s_name'], $array[$row['c_iso2']][$row['s_iso']])) {
+    $array[$row['c_iso2']][$row['s_iso']][] = $row['s_name'];
+  }
+
+  return RESULT_OK;
 }
 
 function save_array_into_file($path, $array)
 {
-  $handle = fopen($path.'1', 'w');
+  $handle = fopen($path, 'w');
   fwrite($handle,"<?php\n\n\$array = array(");
   foreach ($array as $key => $data) {
     $str = "\n  ".escape_str($key)." => array(";
@@ -302,7 +315,15 @@ function make_array_str_countries($data) {
 }
 
 function make_array_str_states($data) {
- return '';
+  $str = "";
+  foreach ($data as $key => $vals) {
+    $str .= "\n" . escape_str($key) .' => array(';
+    foreach ($vals as $val) {
+      $str .= escape_str($val).', ';
+    }
+    $str .= "\n),";
+  }
+ return $str;
 }
 
 function escape_str($str)

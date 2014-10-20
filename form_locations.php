@@ -26,6 +26,14 @@ const QUERY_COUNTRIES_OC        = "select
   c.iso_code_3 as c_iso3
 from oc_country as c";
 
+const QUERY_STATES_OC           = "select
+  c.iso_code_2 as c_iso2,
+  s.name as s_name,
+  s.code as s_iso
+from oc_zone as s
+inner join oc_country as c
+  on s.country_id = c.country_id";
+
 function start($state)
 {
   switch ($state) {
@@ -161,10 +169,14 @@ function form_fields_data_selection()
   <h3>Query</h3>
   <p><span class="label required">db name</span><input type="text" id="db_name" name="db_name" required="required" value="<?php echo get_value('db_name'); ?>"></p>
   <p><span class="label required">make array of:</span>
-    <input type="radio" id="make_arr" name="make_arr" required="required" value="countries" <?php if (get_value('make_arr') == 'countries') echo ' checked="checked" '; ?>>Countries
-    <input type="radio" id="make_arr" name="make_arr" required="required" value="states" <?php if (get_value('make_arr') == 'states') echo ' checked="checked" '; ?>>States
+    <input type="radio" id="make_arr_c" name="make_arr" required="required" value="countries" <?php if (get_value('make_arr') == 'countries') echo ' checked="checked" '; ?>>Countries
+    <input type="radio" id="make_arr_s" name="make_arr" required="required" value="states" <?php if (get_value('make_arr') == 'states') echo ' checked="checked" '; ?>>States
   </p>
   <p><textarea id="query" name="query" required="required"><?php echo get_value('query'); ?></textarea></p>
+  <p><input type="button" value="opencart" onclick="
+  if (document.getElementById('make_arr_c').checked) {document.getElementById('query').value = 'select\n  c.name as c_name,\n  c.iso_code_2 as c_iso2,\n  c.iso_code_3 as c_iso3 \nfrom oc_country as c';}
+  if (document.getElementById('make_arr_s').checked) {document.getElementById('query').value = 'select\n  c.iso_code_2 as c_iso2,\n  s.name as s_name,\n  s.code as s_iso\nfrom oc_zone as s\ninner join oc_country as c\n  on s.country_id = c.country_id';}
+  "></p>
   <p><span class="info">required fields for:
       <span class="info">Countries: c_name, c_iso2, c_iso3</span>
       <span class="info">States: c_iso2, s_name, s_iso</span>
@@ -288,9 +300,11 @@ function make_states_array_el(&$array, &$conflict_array, $row)
     return RESULT_OK;
   }
 
-  if (in_array($row['s_name'], $array[$row['c_iso2']][$row['s_iso']])) {
+  if (!in_array($row['s_name'], $array[$row['c_iso2']][$row['s_iso']])) {
     $array[$row['c_iso2']][$row['s_iso']][] = $row['s_name'];
   }
+
+  $array[$row['c_iso2']][$row['s_iso']] = array_unique($array[$row['c_iso2']][$row['s_iso']]);
 
   return RESULT_OK;
 }
@@ -300,7 +314,7 @@ function save_array_into_file($path, $array)
   $handle = fopen($path, 'w');
   fwrite($handle,"<?php\n\n\$array = array(");
   foreach ($array as $key => $data) {
-    $str = "\n  ".escape_str($key)." => array(";
+    $str = "\n  ".escape_str($key, "'")." => array(";
     if ($path == ARRAY_PATH_COUNTRIES) $str .= make_array_str_countries($data);
     elseif ($path == ARRAY_PATH_STATES) $str .= make_array_str_states($data);
     $str .= "),";
@@ -317,18 +331,19 @@ function make_array_str_countries($data) {
 function make_array_str_states($data) {
   $str = "";
   foreach ($data as $key => $vals) {
-    $str .= "\n" . escape_str($key) .' => array(';
+    $str .= "\n    " . escape_str($key, "'") .' => array(';
+    $tmp_str = '';
     foreach ($vals as $val) {
-      $str .= escape_str($val).', ';
+      $tmp_str .= ($tmp_str != '' ? ', ' : '') . escape_str($val);
     }
-    $str .= "\n),";
+    $str .= $tmp_str . "),";
   }
- return $str;
+ return $str."\n  ";
 }
 
-function escape_str($str)
+function escape_str($str, $quote = '"')
 {
-  return '"'.preg_replace("/\"/","\\\"",$str).'"';
+  return $quote.preg_replace("/".$quote."/","\\".$quote,$str).$quote;
 }
 
 

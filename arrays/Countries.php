@@ -252,4 +252,10 @@ $array = array(
   'BQ' => array("BES", "Bonaire, Sint Eustatius and Saba", 0),
   'CW' => array("CUW", "Curacao", 0),
   'SS' => array("SSD", "South Sudan", 0),
+  'FX' => array("FXX", "France, Metropolitan", 0),
+  'CS' => array("SCG", "Serbia", 0),
+  'ZR' => array("ZAR", "Zaire", 0),
+  'AP' => array("", "Asia-Pacific", 0),
+  'EU' => array("", "Europe", 0),
+  'SX' => array("SXM", "Sint Maarten", 0),
 );

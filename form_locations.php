@@ -332,10 +332,26 @@ function make_array_str_states($data) {
   $str = "";
   foreach ($data as $key => $vals) {
     $str .= "\n    " . escape_str($key, "'") .' => array(';
+
+    // skip empty and explode invalid values with ,
     $tmp_str = '';
+    $tmp_val = array();
     foreach ($vals as $val) {
-      $tmp_str .= ($tmp_str != '' ? ', ' : '') . escape_str($val);
+      $val = explode(',',$val);
+      if(is_array($val)) {
+        foreach($val as $v){
+          $tmp_val[]=trim($v);
+        }
+      } else {
+        $tmp_val[]=trim($val);
+      }
     }
+    foreach ($tmp_val as $val) {
+      if(trim($val) != '') {
+        $tmp_str .= ($tmp_str != '' ? ', ' : '') . escape_str($val);
+      }
+    }
+
     $str .= $tmp_str . "),";
   }
  return $str."\n  ";
